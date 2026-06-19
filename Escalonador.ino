@@ -1,5 +1,6 @@
 #include <RotaryEncoder.h>
 #include <math.h>
+#include <EEPROM.h>
 
 RotaryEncoder encoder1(20, 21);
 RotaryEncoder encoder2(18, 19);
@@ -8,9 +9,13 @@ int posicaoAnterior_enc1 = 0;
 int posicaoAnterior_enc2 = 0;
 
 float frequenciaAtual = 1.0; //ciclos por segundo
-float amplitudeAtual = 10.0;
+float minimo = 0;
+float maximo = 0;
+float amplitudeAtual = 0;
+
 
 String funcao = "";
+char nomeFuncao[20];
 String trecho;
 bool state = false;
 
@@ -32,6 +37,51 @@ void setup(void)
     attachInterrupt(digitalPinToInterrupt(21), tickDoEncoder, CHANGE);
     attachInterrupt(digitalPinToInterrupt(18), tickDoEncoder, CHANGE);
     attachInterrupt(digitalPinToInterrupt(19), tickDoEncoder, CHANGE);
+    randomSeed(analogRead(0));
+}
+
+void salvarConfiguracao()
+{
+    int endereco = random(10000);
+
+    EEPROM.put(endereco, frequenciaAtual);
+    EEPROM.put(endereco, minimo);
+    EEPROM.put(endereco, maximo);
+    
+    funcao.toCharArray(nomeFuncao, sizeof(nomeFuncao));
+    EEPROM.put(endereco, nomeFuncao);
+
+    Serial.println("Configuracao da curva salva!");
+    Serial.println("Endereco: ");
+    Serial.println(endereco);
+}
+
+
+void carregarConfiguracao(int num)
+{
+    int endereco = num;
+
+    EEPROM.get(endereco, frequenciaAtual);
+    EEPROM.get(endereco, minimo);
+    EEPROM.get(endereco, maximo);
+    char nomeFuncao[20];
+
+    EEPROM.get(endereco, nomeFuncao);
+
+    funcao = String(nomeFuncao);
+    Serial.println("Configuracao da curva carregada!");
+
+    Serial.print("Frequencia: ");
+    Serial.println(frequenciaAtual);
+
+    Serial.print("Minimo: ");
+    Serial.println(minimo);
+
+    Serial.print("Maximo: ");
+    Serial.println(maximo);
+
+    Serial.print("Funcao: ");
+    Serial.println(funcao);
 }
 
 void tickDoEncoder()
@@ -135,11 +185,21 @@ void loop()
             frequenciaAtual = trecho.toFloat();
             Serial.println(trecho);
         }
-        else if (texto.startsWith("amplitude"))
+        else if (texto.startsWith("minimo:"))
         {
-            trecho = texto.substring(10);
-            amplitudeAtual = trecho.toFloat();
-            Serial.println(trecho);
+        minimo =
+            texto.substring(7).toFloat();
+
+        Serial.print("Minimo = ");
+        Serial.println(minimo);
+        }
+        else if (texto.startsWith("maximo:"))
+        {
+            maximo =
+                texto.substring(7).toFloat();
+
+            Serial.print("Maximo = ");
+            Serial.println(maximo);
         }
         else if (texto.startsWith("funcao"))
         {
@@ -147,6 +207,14 @@ void loop()
             funcao = trecho;
             Serial.println(trecho);
         }
+        else if (texto.startsWith("load"))
+        {
+            trecho = texto.substring(5);
+            int num = trecho;
+            carregarConfiguracao(num);
+        }
+        salvarConfiguracao();
+        amplitudeAtual = maximo - minimo;
     }
 
     int posicao_freq = encoder1.getPosition();
