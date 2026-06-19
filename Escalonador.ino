@@ -42,7 +42,7 @@ void setup(void)
 
 void salvarConfiguracao()
 {
-    int endereco = random(10000);
+    int endereco = random(4095);
 
     EEPROM.put(endereco, frequenciaAtual);
     EEPROM.put(endereco, minimo);
@@ -210,7 +210,7 @@ void loop()
         else if (texto.startsWith("load"))
         {
             trecho = texto.substring(5);
-            int num = trecho;
+            int num = trecho.toInt();
             carregarConfiguracao(num);
         }
         salvarConfiguracao();
