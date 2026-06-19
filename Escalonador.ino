@@ -42,7 +42,7 @@ void setup(void)
 
 void salvarConfiguracao()
 {
-    int endereco = random(4095);
+    int endereco = random(64);
 
     EEPROM.put(endereco, frequenciaAtual);
     EEPROM.put(endereco, minimo);
