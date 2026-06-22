@@ -8,6 +8,8 @@ RotaryEncoder encoder2(18, 19);
 
 int posicaoAnterior_enc1 = 0;
 int posicaoAnterior_enc2 = 0;
+int indiceAtual = 0;
+int ultimoPonto = 0;
 
 struct Sinal {
   char nome[20];
@@ -26,6 +28,8 @@ int seno40[] = {
    -71, -59, -45, -31, -16
 };
 
+
+Sinal s;
 int ultimoEndereco = 4;
 int qtdSinais = 0;
 
@@ -301,12 +305,12 @@ void loop() {
   int pos_amp = encoder2.getPosition();
 
   if (pos_amp > posicaoAnterior_enc2)
-    for(int i=0;i<s.qtdPontos;i++)
+    for(int i=0;i < s.qtdPontos;i++)
     {
         s.valores[i] *= 1.1;
     }
   else if (amplitudeAtual > 0)
-    for(int i=0;i<s.qtdPontos;i++)
+    for(int i=0;i < s.qtdPontos;i++)
     {
         s.valores[i] *= 0.9;
     }
