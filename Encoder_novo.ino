@@ -1,6 +1,7 @@
 #include <RotaryEncoder.h>
 #include <math.h>
 #include <EEPROM.h>
+#include <LinkedList.h>
 
 RotaryEncoder encoder1(20, 21);
 RotaryEncoder encoder2(18, 19);
@@ -14,30 +15,43 @@ struct Sinal {
   int qtdPontos;
 };
 
-int ultimoEndereco = 8;
+int seno40[] = {
+     0,  16,  31,  45,  59,
+    71,  81,  89,  95,  99,
+   100,  99,  95,  89,  81,
+    71,  59,  45,  31,  16,
+     0, -16, -31, -45, -59,
+   -71, -81, -89, -95, -99,
+  -100, -99, -95, -89, -81,
+   -71, -59, -45, -31, -16
+};
+
+int ultimoEndereco = 4;
 int qtdSinais = 0;
 
-float frequenciaAtual = 1.0;
-float amplitudeAtual = 0;
+int frequenciaAtual = 1.0;
+int amplitudeAtual = 0;
 
-float listaValores[100];
+LinkedList<Sinal> *sinais = new LinkedList<Sinal>();
+
+int listaValores[100];
 int qtdValores = 0;
-float minimo;
-float maximo;
+int minimo;
+int maximo;
 
 String nome = "";
 String funcao = "";
 
 bool state = false;
 
-float t = 0;
-float value = 0;
+int t = 0;
+int value = 0;
 
 unsigned long instante_anterior = 0;
 unsigned long intervalo = 100;
 
 int dir = 1;
-float saw = 0;
+int saw = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -50,7 +64,8 @@ void setup() {
   randomSeed(analogRead(0));
 
   EEPROM.get(0, qtdSinais);
-  EEPROM.get(4, ultimoEndereco);
+  EEPROM.get(2, ultimoEndereco);
+  carregarConfiguracao();
 }
 
 // ================= EEPROM SALVAR =================
@@ -70,44 +85,45 @@ void salvarConfiguracao(Sinal s) {
     endereco += sizeof(int);
   }
   ultimoEndereco = endereco;
-  EEPROM.put(4, ultimoEndereco);
+  EEPROM.put(2, ultimoEndereco);
   qtdSinais++;
   EEPROM.put(0, qtdSinais);
 
   Serial.println("Configuracao salva!");
 }
 
-void carregarConfiguracao(const char* nomeBusca) {
+void carregarConfiguracao() {
 
-  int endereco = 8;
+    int endereco = 4;
 
-  for (int i = 0; i < qtdSinais; i++) {
-    byte tamNome;
-    EEPROM.get(endereco, tamNome);
-    endereco += sizeof(byte);
-    char nomeLido[20];
-    for (int j = 0; j < tamNome; j++) {
-      EEPROM.get(endereco, nomeLido[j]);
-      endereco += sizeof(char);
-    }
-    nomeLido[tamNome] = '\0';
-    int qtd;
-    EEPROM.get(endereco, qtd);
-    endereco += sizeof(int);
-    if (strcmp(nomeLido, nomeBusca) == 0) {
-      nome = String(nomeLido);
-      qtdValores = qtd;
-      for (int j = 0; j < qtdValores; j++) {
-        EEPROM.get(endereco, listaValores[j]);
+    for (int i = 0; i < qtdSinais; i++) {
+
+        Sinal temp;
+
+        byte tamNome;
+        EEPROM.get(endereco, tamNome);
+        endereco += sizeof(byte);
+
+        for (int j = 0; j < tamNome; j++) {
+            EEPROM.get(endereco, temp.nome[j]);
+            endereco += sizeof(char);
+        }
+
+        temp.nome[tamNome] = '\0';
+
+        EEPROM.get(endereco, temp.qtdPontos);
         endereco += sizeof(int);
-      }
-      Serial.println("Sinal carregado!");
-      return;
-    }
-    endereco += qtd * sizeof(int);
-  }
 
-  Serial.println("Sinal nao encontrado!");
+        for (int j = 0; j < temp.qtdPontos; j++) {
+            EEPROM.get(endereco, temp.valores[j]);
+            endereco += sizeof(int);
+        }
+
+        sinais->add(temp);
+        endereco += 1;
+    }
+
+    Serial.println("Lista carregada!");
 }
 
 void tickDoEncoder() {
@@ -128,10 +144,11 @@ void calculaAmplitude() {
   amplitudeAtual = maximo - minimo;
 }
 
+
 void calculaFrequencia() {
 
   int ciclos = 0;
-  float ref = listaValores[0];
+  int ref = listaValores[0];
 
   for (int i = 1; i < qtdValores; i++) {
     if (listaValores[i] == ref) {
@@ -224,11 +241,11 @@ void loop() {
       while (valores.length() > 0) {
         int virgula = valores.indexOf(',');
         if (virgula == -1) {
-          listaValores[qtdValores++] = valores.toFloat();
+          listaValores[qtdValores++] = valores.toInt();
           break;
         }
         listaValores[qtdValores++] =
-          valores.substring(0, virgula).toFloat();
+          valores.substring(0, virgula).toInt();
 
         valores = valores.substring(virgula + 1);
       }
@@ -243,12 +260,13 @@ void loop() {
         s.valores[i] = (int)listaValores[i];
       }
       salvarConfiguracao(s);
+      sinais->add(s);
+
     }
 
     if (texto.startsWith("carregar")) {
 
       texto = texto.substring(9);
-      carregarConfiguracao(texto.c_str());
     }
   }
 
@@ -264,9 +282,16 @@ void loop() {
   int pos_amp = encoder2.getPosition();
 
   if (pos_amp > posicaoAnterior_enc2)
-    amplitudeAtual += 0.1;
+    for(int i=0;i<s.qtdPontos;i++)
+    {
+        s.valores[i] *= 1.1;
+    }
   else if (amplitudeAtual > 0)
-    amplitudeAtual -= 0.1;
+    for(int i=0;i<s.qtdPontos;i++)
+    {
+        s.valores[i] *= 0.9;
+    }
+
 
   posicaoAnterior_enc2 = pos_amp;
 
