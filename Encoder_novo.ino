@@ -38,6 +38,7 @@ int listaValores[100];
 int qtdValores = 0;
 int minimo;
 int maximo;
+float indice = 0;
 
 String nome = "";
 String funcao = "";
@@ -156,6 +157,24 @@ void calculaFrequencia() {
     }
   }
   frequenciaAtual = ciclos;
+}
+
+void reproduzirTabela(Sinal &s)
+{
+    unsigned long intervalo =
+        1000.0 / (frequenciaAtual * s.qtdPontos);
+
+    if(millis() - ultimoPonto >= intervalo)
+    {
+        ultimoPonto = millis();
+
+        Serial.println(s.valores[indiceAtual]);
+
+        indiceAtual++;
+
+        if(indiceAtual >= s.qtdPontos)
+            indiceAtual = 0;
+    }
 }
 
 void senoidal() {
