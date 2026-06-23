@@ -9,11 +9,11 @@ RotaryEncoder encoder2(18, 19);
 int posicaoAnterior_enc1 = 0;
 int posicaoAnterior_enc2 = 0;
 int indiceAtual = 0;
-int ultimoPonto = 0;
+unsigned long ultimoPonto = 0;
 
 struct Sinal {
   char nome[20];
-  int valores[100];
+  float valores[100];
   int qtdPontos;
 };
 
@@ -29,19 +29,21 @@ int seno40[] = {
 };
 
 
-Sinal s;
 int ultimoEndereco = 4;
 int qtdSinais = 0;
 
-int frequenciaAtual = 1.0;
-int amplitudeAtual = 0;
+Sinal sinalAtual;
+bool ativo = false;
+
+float frequenciaAtual = 1.0;
+float amplitudeAtual = 0;
 
 LinkedList<Sinal> *sinais = new LinkedList<Sinal>();
 
-int listaValores[100];
+float listaValores[100];
 int qtdValores = 0;
-int minimo;
-int maximo;
+float minimo;
+float maximo;
 float indice = 0;
 
 String nome = "";
@@ -60,24 +62,32 @@ int saw = 0;
 
 void setup() {
   Serial.begin(9600);
-
+  Serial.println("Oi");
   attachInterrupt(digitalPinToInterrupt(20), tickDoEncoder, CHANGE);
   attachInterrupt(digitalPinToInterrupt(21), tickDoEncoder, CHANGE);
   attachInterrupt(digitalPinToInterrupt(18), tickDoEncoder, CHANGE);
   attachInterrupt(digitalPinToInterrupt(19), tickDoEncoder, CHANGE);
-
-  randomSeed(analogRead(0));
-
   EEPROM.get(0, qtdSinais);
   EEPROM.get(2, ultimoEndereco);
+  if (ultimoEndereco == 0){
+    ultimoEndereco = 4;
+  }
   carregarConfiguracao();
 }
 
-// ================= EEPROM SALVAR =================
 void salvarConfiguracao(Sinal s) {
+  Serial.println("ENTREI EM salvarConfiguracao");
   int endereco = ultimoEndereco;
   byte tamNome = strlen(s.nome);
   EEPROM.put(endereco, tamNome);
+  
+  Serial.println("Endereco de tamNome:");
+  Serial.println(endereco);
+
+  Serial.println("Tamanho nome:");
+  Serial.println(tamNome);
+  
+  
   endereco += sizeof(byte);
   for (int i = 0; i < tamNome; i++) {
     EEPROM.put(endereco, s.nome[i]);
@@ -85,16 +95,28 @@ void salvarConfiguracao(Sinal s) {
   }
   EEPROM.put(endereco, s.qtdPontos);
   endereco += sizeof(int);
+  Serial.println(endereco);
   for (int i = 0; i < s.qtdPontos; i++) {
     EEPROM.put(endereco, s.valores[i]);
-    endereco += sizeof(int);
+    Serial.println(s.valores[i]);
+    endereco += sizeof(float);
   }
   ultimoEndereco = endereco;
   EEPROM.put(2, ultimoEndereco);
+  Serial.println("Ultimo Endereco:");
+  Serial.println(ultimoEndereco);
   qtdSinais++;
   EEPROM.put(0, qtdSinais);
 
   Serial.println("Configuracao salva!");
+}
+
+void LimparEprom(){
+  qtdSinais = 0;
+  EEPROM.put(0, qtdSinais);
+  ultimoEndereco = 4;
+  EEPROM.put(2, ultimoEndereco);
+  Serial.println("EEPROM apagada!");
 }
 
 void carregarConfiguracao() {
@@ -102,33 +124,63 @@ void carregarConfiguracao() {
     int endereco = 4;
 
     for (int i = 0; i < qtdSinais; i++) {
-
+        Serial.println("ENTREI EM carregarConfiguracao");
         Sinal temp;
-
         byte tamNome;
+        Serial.println("1:");
+        Serial.println(endereco);
         EEPROM.get(endereco, tamNome);
+        Serial.println("tamNome:");
+        Serial.println(tamNome);
         endereco += sizeof(byte);
-
+        Serial.println("2:");
+        Serial.println(endereco);
         for (int j = 0; j < tamNome; j++) {
             EEPROM.get(endereco, temp.nome[j]);
             endereco += sizeof(char);
         }
-
+        Serial.println(temp.nome);
         temp.nome[tamNome] = '\0';
 
         EEPROM.get(endereco, temp.qtdPontos);
         endereco += sizeof(int);
-
+        Serial.println("3:");
+        Serial.println(endereco);
         for (int j = 0; j < temp.qtdPontos; j++) {
             EEPROM.get(endereco, temp.valores[j]);
-            endereco += sizeof(int);
+            endereco += sizeof(float);
         }
-
         sinais->add(temp);
-        endereco += 1;
+        Serial.println("Ultimo endereco: ");
+        Serial.println(endereco);
+
     }
 
     Serial.println("Lista carregada!");
+}
+
+void printobj() {
+
+  if (sinais->size() == 0) {
+    Serial.println("Lista vazia");
+    Serial.println("Qtd de Sinais:");
+    Serial.println(qtdSinais);
+    return;
+  }
+
+  Sinal myObject = sinais->get(sinais->size() - 1);
+  Serial.print("Nome: ");
+  Serial.println(myObject.nome);
+  Serial.print("Qtd pontos: ");
+  Serial.println(myObject.qtdPontos);
+  Serial.print("Valores: ");
+  for (int i = 0; i < myObject.qtdPontos; i++) {
+    Serial.print(myObject.valores[i]);
+    if (i < myObject.qtdPontos - 1)
+      Serial.print(", ");
+  }
+  Serial.println();
+  Serial.println(sinais->size());
 }
 
 void tickDoEncoder() {
@@ -136,24 +188,24 @@ void tickDoEncoder() {
   encoder2.tick();
 }
 
-void calculaAmplitude() {
+void calculaAmplitude(Sinal &s) {
 
-  maximo = listaValores[0];
-  minimo = listaValores[0];
+  maximo = s.valores[0];
+  minimo = s.valores[0];
 
   for (int i = 1; i < qtdValores; i++) {
-    if (listaValores[i] > maximo) maximo = listaValores[i];
-    if (listaValores[i] < minimo) minimo = listaValores[i];
+    if (s.valores[i] > maximo) maximo = s.valores[i];
+    if (s.valores[i] < minimo) minimo = s.valores[i];
   }
 
-  amplitudeAtual = maximo - minimo;
+  amplitudeAtual = (maximo - minimo) / 2;
 }
 
 
 void calculaFrequencia() {
 
   int ciclos = 0;
-  int ref = listaValores[0];
+  float ref = listaValores[0];
 
   for (int i = 1; i < qtdValores; i++) {
     if (listaValores[i] == ref) {
@@ -165,8 +217,8 @@ void calculaFrequencia() {
 
 void reproduzirTabela(Sinal &s)
 {
-    unsigned long intervalo =
-        1000.0 / (frequenciaAtual * s.qtdPontos);
+
+    unsigned long intervalo = 1000.0 / (frequenciaAtual);
 
     if(millis() - ultimoPonto >= intervalo)
     {
@@ -180,7 +232,7 @@ void reproduzirTabela(Sinal &s)
             indiceAtual = 0;
     }
 }
-
+/*
 void senoidal() {
 
   if (millis() - instante_anterior >= intervalo) {
@@ -241,7 +293,7 @@ void serra() {
       saw = 0;
   }
 }
-
+*/
 void loop() {
 
   if (Serial.available() > 0) {
@@ -253,8 +305,8 @@ void loop() {
 
       texto = texto.substring(6);
 
-      int p1 = texto.indexOf(';');
-      int p2 = texto.indexOf(';', p1 + 1);
+      int p1 = texto.indexOf(";");
+      int p2 = texto.indexOf(";", p1 + 1);
 
       nome = texto.substring(0, p1);
       funcao = texto.substring(p1 + 1, p2);
@@ -264,17 +316,17 @@ void loop() {
       while (valores.length() > 0) {
         int virgula = valores.indexOf(',');
         if (virgula == -1) {
-          listaValores[qtdValores++] = valores.toInt();
+          listaValores[qtdValores++] = valores.toFloat();
           break;
         }
         listaValores[qtdValores++] =
-          valores.substring(0, virgula).toInt();
+          valores.substring(0, virgula).toFloat();
 
         valores = valores.substring(virgula + 1);
       }
 
-      calculaAmplitude();
-      calculaFrequencia();
+      //calculaAmplitude();
+      //calculaFrequencia();
 
       Sinal s;
       nome.toCharArray(s.nome, sizeof(s.nome));
@@ -287,39 +339,52 @@ void loop() {
 
     }
 
-    if (texto.startsWith("carregar")) {
-
-      texto = texto.substring(9);
+    if (texto.startsWith("printar")) {
+      printobj();
+      
+    }
+    if (texto.startsWith("plotar")){
+      for (int i = 0; i < sinais->size(); i++){
+        String nome_curva = texto.substring(7);
+        nome_curva.trim();
+        Sinal obj = sinais->get(i);
+        if (nome_curva.equals(obj.nome)) {
+        sinalAtual = obj;
+        indiceAtual = 0;
+        ativo = true;
+        break;
+        }
+      }
+    }
+    if (texto.startsWith("limpar")){
+      LimparEprom();
+    }
+    if (texto.startsWith("parar")){
+      ativo = false;
     }
   }
-
+  if (ativo) {
+  reproduzirTabela(sinalAtual);
   int pos_freq = encoder1.getPosition();
-
-  if (pos_freq > posicaoAnterior_enc1)
-    frequenciaAtual += 0.1;
-  else if (frequenciaAtual > 0)
-    frequenciaAtual -= 0.1;
-
-  posicaoAnterior_enc1 = pos_freq;
+  if (pos_freq != posicaoAnterior_enc1) {
+    frequenciaAtual *= (pos_freq > posicaoAnterior_enc1) ? 1.1 : 0.9;
+    if (frequenciaAtual < 0.1)
+      frequenciaAtual = 0.1;
+    posicaoAnterior_enc1 = pos_freq;
+  }
 
   int pos_amp = encoder2.getPosition();
-
+  calculaAmplitude(sinalAtual);
   if (pos_amp > posicaoAnterior_enc2)
-    for(int i=0;i < s.qtdPontos;i++)
+    for(int i=0;i < sinalAtual.qtdPontos;i++)
     {
-        s.valores[i] *= 1.1;
+        sinalAtual.valores[i] *= 1.1;
     }
-  else if (amplitudeAtual > 0)
-    for(int i=0;i < s.qtdPontos;i++)
+  else if (pos_amp < posicaoAnterior_enc2)
+    for(int i=0;i < sinalAtual.qtdPontos;i++)
     {
-        s.valores[i] *= 0.9;
+        sinalAtual.valores[i] *= 0.9;
     }
-
-
   posicaoAnterior_enc2 = pos_amp;
-
-  if (funcao == "senoidal") senoidal();
-  else if (funcao == "quadrado") quadrado();
-  else if (funcao == "triangulo") triangulo();
-  else if (funcao == "serra") serra();
+  }
 }
