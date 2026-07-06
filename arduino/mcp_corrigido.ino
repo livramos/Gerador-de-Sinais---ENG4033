@@ -485,7 +485,13 @@ void atualizaDAC()
 void setup()
 {
     Serial.begin(9600);
-
+    EEPROM.get(0, qtdSinais);
+    EEPROM.get(2, ultimoEndereco);
+    if (ultimoEndereco == 0){
+      ultimoEndereco = 4;
+    }
+    carregarConfiguracao();
+  
     Wire.begin();
     dac.begin(0x60);
 
@@ -496,15 +502,6 @@ void setup()
     encX.setPosition(0);
     botao_enc.setPressHandler(muda_tela);
     desenhaTelaSelecao();
-    EEPROM.get(0, qtdSinais);
-    EEPROM.get(2, ultimoEndereco);
-  if (ultimoEndereco == 0){
-    ultimoEndereco = 4;
-  }
-    carregarConfiguracao();
-  
-
-
 }
 
 
