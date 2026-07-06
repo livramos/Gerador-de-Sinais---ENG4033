@@ -350,6 +350,9 @@ void carregarConfiguracao() {
             EEPROM.get(endereco, temp.sinal.valores[j]);
             endereco += sizeof(float);
         }
+        temp.cor = COR_COS;
+        temp.amp = 50.0f;
+        temp.freq = 1.0f;
         opcoes->add(temp);
         Serial.println("Nome:");
         Serial.println(temp.nome);
@@ -466,15 +469,15 @@ void atualizaDAC()
             indiceDAC = 0;
         }
 
-        int valorTabela = op.sinal.valores[indiceDAC];
+        float valorTabela = op.sinal.valores[indiceDAC];
 
-        // aplica amplitude real
-        valorTabela = valorTabela * (op.amp / 100.0);
+        valorTabela *= op.amp / 100.0f;
 
-        // garante que nao passe da faixa do MCP
-        valorTabela = constrain(valorTabela, -100, 100);
+        valorTabela = constrain(valorTabela, -100.0f, 100.0f);
 
-        int valorDAC = (int)((valorTabela + 1.0f) * 4095.0f / 2.0f);
+        float normalizado = valorTabela / 100.0f;
+
+        int valorDAC = (normalizado + 1.0f) * 4095.0f / 2.0f;
 
         dac.setVoltage(valorDAC, false);
 
@@ -491,7 +494,7 @@ void setup()
       ultimoEndereco = 4;
     }
     carregarConfiguracao();
-  
+    
     Wire.begin();
     dac.begin(0x60);
 
@@ -547,7 +550,7 @@ void loop()
       nome.toCharArray(op.nome, sizeof(op.nome));
       op.sinal.qtdPontos = qtdValores;
       for (int i = 0; i < qtdValores; i++) {
-        int valor = (float)(listaValores[i]*100.0f);
+        float valor = (listaValores[i]*1.0f);
         valor = constrain(valor,-100.0f,100.0f);
         op.sinal.valores[i]=valor;
       }
