@@ -8,12 +8,12 @@
 #include <EEPROM.h>
 #include <LinkedList.h>
 #include <MCUFRIEND_kbv.h>
-
-// verificar salvamento da EPROM -> livia 
 #define TFT_CS  10
 #define TFT_DC   9
 #define TFT_RST  8
-#define COR_GRADE 0x2945
+
+
+/*
 // isso aq é pro simulador 
 #define COR_SEN   ILI9341_GREEN
 #define COR_COS   ILI9341_MAGENTA
@@ -25,7 +25,8 @@
 #define COR_BRANCO        ILI9341_WHITE
 #define COR_CINZA_CLARO  ILI9341_LIGHTGREY
 #define COR_VERMELHO    ILI9341_RED
-/*
+*/
+#define COR_GRADE 0x2945
 #define COR_SEN   0x07E0   // verde
 #define COR_COS   0xF81F   // magenta
 #define COR_TRI   0x07FF   // ciano
@@ -37,7 +38,7 @@
 #define COR_CINZA_CLARO  0xC618
 #define COR_VERMELHO     0xF800
 
-*/
+
 #define encY_CLK  21 
 #define encY_DT   20
 #define encY_SW   A12  
@@ -66,8 +67,8 @@ struct Opcao {
 LinkedList<Opcao> *opcoes = new LinkedList<Opcao>();
 const int OPCOES_VISIVEIS = 3; 
 GFButton botao_enc(encY_SW);  
-Adafruit_ILI9341 lcd(TFT_CS, TFT_DC, TFT_RST); // so funciona no woki
-//MCUFRIEND_kbv lcd(TFT_CS, TFT_DC, TFT_RST);
+//Adafruit_ILI9341 lcd(TFT_CS, TFT_DC, TFT_RST); // so funciona no woki
+MCUFRIEND_kbv lcd(TFT_CS, TFT_DC, TFT_RST);
 RotaryEncoder encY(encY_CLK, encY_DT, RotaryEncoder::LatchMode::TWO03);
 RotaryEncoder encX(encX_CLK,encX_DT);
 int  telaAtual         = 0;
@@ -349,6 +350,7 @@ void carregarConfiguracao() {
     Serial.println("Lista carregada!");
 }
 // lixo do codigo do lorenzo, acho q n usa pra nada 
+/*
 void calculaAmplitude(Sinal &s) {
 
   maximo = s.valores[0];
@@ -361,7 +363,7 @@ void calculaAmplitude(Sinal &s) {
 
   amplitudeAtual = (maximo - minimo) / 2;
 }
-
+*/
 void LimparEprom(){
   qtdSinais = 0;
   EEPROM.put(0, qtdSinais);
@@ -397,6 +399,7 @@ void printobj() {
   Serial.print("Tamanho da lista opcoes: ");
   Serial.println(opcoes->size());
 }
+/*
 void calculaFrequencia() {
 
   int ciclos = 0;
@@ -409,7 +412,7 @@ void calculaFrequencia() {
   }
   frequenciaAtual = ciclos;
 }
-
+*/
 void reproduzirTabela(Sinal &s)
 {
 
@@ -487,18 +490,17 @@ void loop()
       Opcao op; 
       Sinal s;
       nome.toCharArray(op.nome, sizeof(op.nome));
-      s.qtdPontos = qtdValores;
+      op.sinal.qtdPontos = qtdValores;
       for (int i = 0; i < qtdValores; i++) {
-        valor = (int)(listaValores[i]*100.0f);
+        int valor = (int)(listaValores[i]*100.0f);
         valor= constrain(valor,-100,100);
         op.sinal.valores[i]=valor;
       }
-      op.sinal.qtdPontos=s.qtdPontos;
-      op.cor=COR_COS;
-      op.freq=1.0f;
-      op.amp=100.0f;111
-      opcoes->add(op);
+      op.cor = COR_COS;
+      op.freq = 1.0f;
+      op.amp = 50.0f;
       salvarConfiguracao(op);
+      opcoes->add(op);
       opcao_selecionada = opcoes->size() - 1;
       atualizaOpcoes();
     }
@@ -570,7 +572,7 @@ void loop()
              op_amp.amp = constrain(
                  op_amp.amp,
                 10.0f,
-                120.0f
+                50.0f
             );
             posAmp_ant = posY;
             // redesenho rapido: so a curva, sem limpar a area toda
@@ -589,7 +591,7 @@ void loop()
           op_freq.freq = constrain(
             op_freq.freq,
             0.1f,
-            100.0f
+            90.0f
           );
           opcoes->set(opcao_selecionada, op_freq);
           posFreq_ant = posX;
