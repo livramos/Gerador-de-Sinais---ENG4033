@@ -13,7 +13,7 @@ cliente = MongoClient("localhost", 27017)
 banco = cliente["gerador_sinais"]
 colecao = banco["sinais"]
 
-meu_serial = Serial("COM25", baudrate=9600)
+meu_serial = Serial("COM15", baudrate=9600)
 
 
 def serial():
@@ -45,11 +45,13 @@ def adicionar_sinal():
     nome = entrada_nome.get()
     tipo = combo_tipo.get()
     formula = entrada_formula.get() #if combo_tipo.get() == "Personalizado" else ""
+    periodo = entrada_periodo.get()
 
     sinal = {
         "nome": nome,
         "tipo": tipo,
-        "formula" : formula
+        "formula" : formula,
+        "periodo" :  periodo
     }
     
     print(sinal)
@@ -68,7 +70,8 @@ def atualizar_lista():
             values=(
                 sinal["nome"],
                 sinal["tipo"],
-                sinal["formula"]
+                sinal["formula"],
+                sinal["periodo"]
             )
         )   
 
@@ -76,9 +79,16 @@ def muda_tipo(event):
     if combo_tipo.get() == "Personalizado":
         label_formula.grid(row=4, column=0)
         entrada_formula.grid(row=4, column=1)
+        
+        label_periodo.grid(row=5, column=0)
+        entrada_periodo.grid(row=5, column=1)
+        
     else:
         label_formula.grid_remove()
         entrada_formula.grid_remove()
+        
+        label_periodo.grid_remove()
+        entrada_periodo.grid_remove()
 
 
 def converter_formula(formula):
@@ -132,13 +142,13 @@ def selecionar_sinal(evento):
     if len(selecionado) == 0:
         return
     
-    
     item = lista.selection()[0]
     valores = lista.item(item, "values")
     
     nome_selecionado = valores[0]
     tipo_selecionado = valores[1]
     formula_selecionada = valores[2]
+    periodo_selecionado = valores[3]
     
     #apaga o conteudo atual da caixa
     entrada_nome.delete(0, tk.END)
@@ -152,10 +162,17 @@ def selecionar_sinal(evento):
     entrada_formula.delete(0, tk.END)
     entrada_formula.insert(0, formula_selecionada)
     
+    entrada_periodo.delete(0, tk.END)
+    entrada_periodo.insert(0, periodo_selecionado)
+    
     print(valores)
     print(nome_selecionado)
     print(tipo_selecionado)
     print(formula_selecionada)
+    print(periodo_selecionado)
+    
+    
+    
 
 
 def editar_sinal():
@@ -164,13 +181,15 @@ def editar_sinal():
     novo_nome = entrada_nome.get()
     novo_tipo = combo_tipo.get()
     nova_formula = entrada_formula.get()
+    novo_periodo = entrada_periodo.get()
     
     colecao.update_one(
         {"nome": nome_selecionado},
         {"$set": {
             "nome": novo_nome,
             "tipo": novo_tipo,
-            "formula": nova_formula
+            "formula": nova_formula,
+            "periodo": novo_periodo
         }}
     )
 
@@ -187,13 +206,22 @@ def remover_sinal():
 
 def gerar_pontos():
     tipo = combo_tipo.get()
-    x = np.linspace(0, 10, 100)
+    periodo = entrada_periodo.get()
+    
+    if tipo == "Personalizado":
+        if periodo == "":
+            periodo = "1"
+        x = np.linspace(0, float(periodo), 100)
+        
+    else:
+        x = np.linspace(0, 1, 100)
+    
     if tipo == "Quadrada":
-        y = np.sign(np.sin(2 * np.pi * 5 * x))
+        y = np.sign(np.sin(2 * np.pi * 1 * x))
     elif tipo == "Senoidal":
-        y = np.sin(2 * np.pi * 5 * x)
+        y = np.sin(2 * np.pi * 1 * x)
     elif tipo == "Triangular":
-        y = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * 5 * x))
+        y = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * 1 * x))
     else:
         formula = entrada_formula.get()
         formula_convertida = converter_formula(formula)
@@ -204,9 +232,10 @@ def enviar_arduino():
     x, y = gerar_pontos()
     nome = entrada_nome.get()
     tipo = combo_tipo.get()
+    periodo = entrada_periodo.get()
     valores = [round(v, 2) for v in y.tolist()]
     texto_valores = ",".join(str(v) for v in valores)
-    texto = "sinal " + nome + ";" + tipo + ";" + texto_valores
+    texto = "sinal " + nome + ";" + periodo + ";" + texto_valores
     meu_serial.write((texto + "\n").encode())
     print(texto)
     
@@ -228,11 +257,11 @@ frame.pack(pady=10)
 
 lista = ttk.Treeview(
     janela,
-    columns=("Nome", "Tipo", "Formula"),
+    columns=("Nome", "Tipo", "Formula", "Periodo"),
     show="headings"
 )
 
-for coluna in ("Nome", "Tipo", "Formula"):
+for coluna in ("Nome", "Tipo", "Formula", "Periodo"):
     lista.heading(coluna, text=coluna)
 
 # tipo margin-top e margin-bottom do CSS
@@ -256,6 +285,9 @@ label_formula = tk.Label(frame, text="Fórmula/valores")
 entrada_formula = tk.Entry(frame, width=40)
 #entrada_formula.grid(row=4, column=1)
 
+label_periodo = tk.Label(frame, text="Limite do período")
+entrada_periodo = tk.Entry(frame, width=10)
+
 
 
 tk.Button(janela, text="Adicionar sinal", command=adicionar_sinal).pack(side="left", pady=5)
@@ -269,6 +301,4 @@ lista.bind("<<TreeviewSelect>>", selecionar_sinal)
 
 atualizar_lista()
 janela.mainloop()
-
-
 
