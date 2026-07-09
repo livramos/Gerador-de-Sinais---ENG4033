@@ -10,6 +10,7 @@ Projeto de um gerador e visualizador de sinais com interface em Python para cada
   <img src="img/1000098152.jpg" alt="Imagem 2" width="300" />
   <img src="img/WhatsApp%20Image%202026-07-08%20at%209.35.23%20PM.jpeg" alt="Imagem 3" width="300" />
 </div>
+
 ## Objetivo
 
 O objetivo do projeto é permitir que o usuário:
