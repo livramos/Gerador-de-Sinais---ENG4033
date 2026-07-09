@@ -72,6 +72,8 @@ Assista ao vídeo do projeto em: https://youtu.be/bJm88EDpvUE
 
 ## Imagens
 
-![Imagem do projeto 1](img/1000098151.jpg)
-
-![Imagem do projeto 2](img/1000098152.jpg)
+<div style="display:flex; gap:8px; align-items:center;">
+  <img src="img/1000098151.jpg" alt="Imagem 1" width="300" />
+  <img src="img/1000098152.jpg" alt="Imagem 2" width="300" />
+  <img src="img/WhatsApp%20Image%202026-07-08%20at%209.35.23%20PM.jpeg" alt="Imagem 3" width="300" />
+</div>
