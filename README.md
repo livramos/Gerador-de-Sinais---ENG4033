@@ -1,7 +1,15 @@
 # Gerador de Sinais com Arduino, Display TFT e Interface Python
+Assista ao vídeo do projeto em: https://youtu.be/bJm88EDpvUE
 
 Projeto de um gerador e visualizador de sinais com interface em Python para cadastrar, armazenar, plotar e enviar funções ao Arduino. No lado embarcado, os sinais recebidos são organizados em memória, exibidos em um display TFT e podem ser ajustados por encoders para controle de amplitude e frequência.
 
+## Imagens
+
+<div style="display:flex; gap:8px; align-items:center;">
+  <img src="img/1000098151.jpg" alt="Imagem 1" width="300" />
+  <img src="img/1000098152.jpg" alt="Imagem 2" width="300" />
+  <img src="img/WhatsApp%20Image%202026-07-08%20at%209.35.23%20PM.jpeg" alt="Imagem 3" width="300" />
+</div>
 ## Objetivo
 
 O objetivo do projeto é permitir que o usuário:
@@ -65,15 +73,3 @@ O projeto está organizado nas pastas abaixo, com a versão final concentrada no
 ```
 
 O arquivo principal do Arduino é [arduino/projeto_definitivo.ino](arduino/projeto_definitivo.ino) e a interface Python final está em [python/tela_python_gerador_sinal_final.py](python/tela_python_gerador_sinal_final.py).
-
-## Vídeo de demonstração
-
-Assista ao vídeo do projeto em: https://youtu.be/bJm88EDpvUE
-
-## Imagens
-
-<div style="display:flex; gap:8px; align-items:center;">
-  <img src="img/1000098151.jpg" alt="Imagem 1" width="300" />
-  <img src="img/1000098152.jpg" alt="Imagem 2" width="300" />
-  <img src="img/WhatsApp%20Image%202026-07-08%20at%209.35.23%20PM.jpeg" alt="Imagem 3" width="300" />
-</div>
